@@ -2,22 +2,23 @@
 
 #include <Arduino.h>
 #include "pins.h"
+#include <IRremote.h>
 
 static inline void motor(int dirpin1, int dirpin2, int speedpin, int speed) {
-  digitalWrite(dirpin2, !digitalRead(dirpin1));
+  speed = constrain(speed, -255, 255);
 
-  if (speed == 0) {
-    digitalWrite(dirpin1, LOW);
-    analogWrite(speedpin, 0);
-  }
-  else if (speed > 0) {
-    digitalWrite(dirpin1, LOW);
-    analogWrite(speedpin, speed);
-  }
-  else {
+  if (speed > 0) {            // 前进
     digitalWrite(dirpin1, HIGH);
-    analogWrite(speedpin, -speed);
+    digitalWrite(dirpin2, LOW);
+  } else if (speed < 0) {     // 后退
+    digitalWrite(dirpin1, LOW);
+    digitalWrite(dirpin2, HIGH);
+  } else {                    // 停：两脚都低（滑行）
+    digitalWrite(dirpin1, LOW);
+    digitalWrite(dirpin2, LOW);
   }
+
+  analogWrite(speedpin, abs(speed));
 }
 
 //单轮控制
@@ -56,7 +57,22 @@ static inline void car_setup() {
 
   car_stop();
 }
-
+const char* protoName(decode_type_t p) {
+  switch (p) {
+    case NEC:       return "NEC";
+    case NEC2:      return "NEC2";
+    case SAMSUNG:   return "SAMSUNG";
+    case SAMSUNGLG: return "SAMSUNGLG";
+    case SONY:      return "SONY";
+    case RC5:       return "RC5";
+    case RC6:       return "RC6";
+    case LG:        return "LG";
+    case PANASONIC: return "PANASONIC";
+    case KASEIKYO:  return "KASEIKYO";
+    case UNKNOWN:   return "UNKNOWN";
+    default:        return "OTHER";
+  }
+}
 //引脚初始化
 static inline void Pin_setup() {
   pinMode(MOTOR_L_IN1, OUTPUT);
@@ -69,4 +85,5 @@ static inline void Pin_setup() {
   digitalWrite(MOTOR_R_IN2, LOW);
   pinMode(ULTRA_TRIG_Front, OUTPUT);
   pinMode(ULTRA_ECHO_Front, INPUT);
+  pinMode(A0, OUTPUT);
 }
