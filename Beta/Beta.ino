@@ -3,13 +3,6 @@
 #include <LiquidCrystal_I2C.h>
 #include "Car.h"
 
-bool flag=false;
-bool     overtaking = Disable;
-uint32_t overtakeAt = 0;
-uint32_t lastSense  = 0;
-uint32_t lastLcd    = 0;
-float    dist       = -1;
-
 void setup(){
   lcd_tail.init();
   lcd_tail.backlight();
@@ -33,87 +26,100 @@ void loop(){
       BrakeActivated = Enabled;
       brake();
       delay(600);
-      if(flag && BrakeActivated==Disable){
-        straight(150);
-      }
     }
     else{
       BrakeActivated = Disable;
     }
   }
-  if (IrReceiver.decode()){
-    IrReceiver.resume();
-    switch (IrReceiver.decodedIRData.command) {
-      case 0x40:
-        flag=true;
-        BrakeActivated=Disable;
-        overtaking = false;
-        ReverseActivation = Disable;
-        straight(150);
-        break;
-      case 0x44:
-        flag=false;
-        overtaking = false;
-        Reversing(150);
-        break;
-      case 0x43:
-        flag=false;
-        ReverseActivation = Disable;
-        overtaking = false;
-        brake();
-        break;
-      case 0x16:
-        digitalWrite(A0,HIGH);
-        delay(300);
-        digitalWrite(A0,LOW);
-        break;
-      case 0x9:
-        ReverseActivation = Disable;
-        if(flag=true){
-          overtakeAt = millis();
-          straight(255);
-        }
-        break;
-      case 0x46:
-        overtaking = false;
-        if(ReverseActivation!=Enabled){
+  if(mode==true){
+    if (IrReceiver.decode()){
+      IrReceiver.resume();
+      switch (IrReceiver.decodedIRData.command) {
+        case 0x40:
           flag=true;
-          straight(100);
-        }
-        else {
+          BrakeActivated=Disable;
+          overtaking = false;
+          ReverseActivation = Disable;
+          straight(150);
+          break;
+        case 0x44:
           flag=false;
-          Reversing(100);
-        }
-        break;
-      case 0x45:
-        car_arc_left(150);
-        break;
-      case 0x47:
-        car_arc_right(150);
-        break;
-      case 0x19:
-        car_drive(128,150);
-        break;
-      case 0xD:
-        car_drive(150,128);
-        break;
-      default:
-        break;
+          overtaking = false;
+          Reversing(150);
+          break;
+        case 0x43:
+          flag=false;
+          ReverseActivation = Disable;
+          overtaking = false;
+          brake();
+          break;
+        case 0x16:
+          digitalWrite(A0,HIGH);
+          delay(100);
+          digitalWrite(A0,LOW);
+          break;
+        case 0x9:
+          ReverseActivation = Disable;
+          if(flag==true){
+            overtaking = true;
+            overtakeAt = millis();
+            straight(255);
+          }
+          break;
+        case 0x46:
+          overtaking = false;
+          if(ReverseActivation!=Enabled){
+            flag=true;
+            straight(100);
+          }
+          else {
+            flag=false;
+            Reversing(100);
+          }
+          break;
+        case 0x45:
+          flag=false;
+          car_arc_left(150);
+          break;
+        case 0x47:
+          flag=false;
+          car_arc_right(150);
+          break;
+        case 0x19:
+          flag=false;
+          car_drive(128,150);
+          break;
+        case 0xD:
+          flag=false;
+          car_drive(170,128);
+          break;
+        case 0x4A:
+          mode=false;
+          break;
+        default:
+          break;
+      }
     }
+  }
+  else{
+    Serial.flush();
+    if(IrReceiver.decodedIRData.command==0x4A){
+      mode=true;
+      brake();
+    }
+    if(Ultrasound_front() <= 30){
+      Display();
+      brake();
+      delay(1000);
+      Reversing(150);
+      BrakeActivated=Enabled;
+    }
+    else{
+      ReverseActivation=Disable;
+      BrakeActivated=Disable;
+    }
+    straight(150);
   }
   Display();
 }
-  // Serial.flush();
-  // if(Ultrasound_front() <= 30){
-  //   Display();
-  //   brake();
-  //   delay(1000);
-  //   Reversing();
-  //   BrakeActivated=Enabled;
-  // }
-  // else{
-  //   ReverseActivation=Disable;
-  //   BrakeActivated=Disable;
-  // }
-  // straight();
-// }
+  

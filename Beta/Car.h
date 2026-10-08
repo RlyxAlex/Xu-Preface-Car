@@ -14,6 +14,13 @@ LiquidCrystal_I2C lcd_tail(0x27,16,2);
 Status BrakeActivated = Enabled;
 Status ReverseActivation = Disable;
 Status OverTake = Disable;
+bool     mode=true;
+bool     flag=false;
+bool     overtaking = Disable;
+uint32_t overtakeAt = 0;
+uint32_t lastSense  = 0;
+uint32_t lastLcd    = 0;
+float    dist       = -1;
 
 static inline void motor(int dirpin1, int dirpin2, int speedpin, int speed) {
   digitalWrite(dirpin2, !digitalRead(dirpin1));
@@ -117,10 +124,28 @@ void Display(){
   lcd_tail.clear();
   lcd_tail.setCursor(0, 0);
   lcd_tail.print(String(Ultrasound_front()) + String("cm"));
+  if(overtaking==true && mode==true){
+    lcd_tail.setCursor(0, 1);
+    lcd_tail.print("RC  OverTake:ON");
+  }
+  else if(overtaking==true && mode==false){
+    lcd_tail.setCursor(0, 1);
+    lcd_tail.print("SD  OverTake:ON");
+  }
+  else if(overtaking==false && mode==true){
+    lcd_tail.setCursor(0, 1);
+    lcd_tail.print("RC  OverTake:OFF");
+  }
+  else if(overtaking==false && mode==false){
+    lcd_tail.setCursor(0, 1);
+    lcd_tail.print("SD  OverTake:OFF");
+  }
   delay(500);
 }
 
 void brake(){
+  flag=false;
+  overtaking = false; 
   if(ReverseActivation!=Enabled){
     car_stop();
   }
